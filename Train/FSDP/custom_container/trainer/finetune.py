@@ -6,7 +6,9 @@ import os
 from google.cloud.logging_v2.handlers import setup_logging                        
 from google.cloud.logging.handlers import CloudLoggingHandler                                                                                  
 from google.cloud import logging as google_logging                                 
-import logging                                                                                                                                                                                                                                                     
+import logging
+import json
+
 # Get job id from env CLOUD_ML_JOB_ID                                                                                    
 def GetJobID():
     job_id = os.getenv("CLOUD_ML_JOB_ID")
