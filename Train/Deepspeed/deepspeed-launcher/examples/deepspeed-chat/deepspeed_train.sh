@@ -77,6 +77,7 @@ fi
 deepspeed ${HOSTFILE_FLAG} \
    main.py \
    --data_path $DATA_PATHS \
+   --data_split 10,0,0 \
    --data_split $DATA_SPLIT \
    --model_name_or_path $MODEL_PATH \
    --per_device_train_batch_size $PER_DEVICE_BATCH_SIZE \
