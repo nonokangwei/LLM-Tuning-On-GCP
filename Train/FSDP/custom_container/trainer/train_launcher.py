@@ -123,6 +123,7 @@ if __name__ == '__main__':
             setattr(SimpleElasticAgent, "_set_master_addr_port", staticmethod(_hook_set_master_addr_port))
         # Launch distributed training
         # Sample: python3 train_launcher.py --nnodes 2 --nproc_per_node 1 ./finetune.py --enable_fsdp --use_peft --peft_method lora --model_name /gcs/llama2ft-project-kangwe-poc-unique/llama-7b --pure_bf16 --output_dir /root/save/model
+        # Sample: python3 train_launcher.py --nnodes 2 --nproc_per_node 8 ./finetune.py --enable_fsdp  --model_name /gcs/llama2ft-project-kangwe-poc-unique/llama-7b --pure_bf16 --dist_checkpoint_root_folder /root/save/model --dist_checkpoint_folder fine-tuned 
         training_distributed_launch.main(args)
     else:
         # Launch single node training
