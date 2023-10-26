@@ -25,6 +25,13 @@ from llama_recipes.utils.memory_utils import MemoryTrace
 from google.cloud import aiplatform
 from torch.utils.tensorboard import SummaryWriter
 
+import shutil
+
+# Saving model outputs from local directory to GCS
+def save_model_outputs_to_gcs(local_dir, gcs_dir):
+    shutil.copytree(local_dir, gcs_dir, dirs_exist_ok=True)
+    print(f"model outputs are saved in {gcs_dir} directory")
+
 def set_tokenizer_params(tokenizer: LlamaTokenizer):
     tokenizer.pad_token_id = 0
     tokenizer.padding_side = "left"

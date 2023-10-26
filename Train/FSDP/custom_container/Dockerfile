@@ -74,6 +74,9 @@ COPY trainer/* /root/trainer/
 # Copies updated training_utils python file
 RUN mkdir /root/log
 
+# Create a directory to store the model
+RUN mkdir -p /root/save/model
+
 COPY train_utils.py /llama-recipes/src/llama_recipes/utils/
 
 # Sets up the entry point to invoke the trainer.
