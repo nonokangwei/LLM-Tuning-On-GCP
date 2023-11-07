@@ -1,0 +1,1 @@
+your Huggingface token of read access (only need if you download Llama2 model from Huggingface directly, no need if you import model from GCS)

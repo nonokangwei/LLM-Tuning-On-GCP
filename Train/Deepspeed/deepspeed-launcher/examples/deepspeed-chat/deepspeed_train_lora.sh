@@ -76,7 +76,8 @@ fi
 #     
 deepspeed ${HOSTFILE_FLAG} \
    main.py \
-   --sft_only_data_path $DATA_PATHS \
+   --data_path $DATA_PATHS \
+   --data_split 10,0,0 \
    --model_name_or_path $MODEL_PATH \
    --per_device_train_batch_size $PER_DEVICE_BATCH_SIZE \
    --per_device_eval_batch_size $PER_DEVICE_BATCH_SIZE \
@@ -91,6 +92,9 @@ deepspeed ${HOSTFILE_FLAG} \
    --gradient_checkpointing \
    --zero_stage $ZERO_STAGE \
    --deepspeed \
+   --lora_dim 128 \
+   --lora_module_name "layers." \
+   --only_optimize_lora \
    --output_dir ${OUTPUT_FOLDER} \
    --project $CLOUD_ML_PROJECT_ID\
    --location $CLOUD_ML_REGION\
