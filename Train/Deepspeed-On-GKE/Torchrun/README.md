@@ -1,4 +1,4 @@
-# Use Torchrun to run Llama-2 on GKE User Guide 
+# Use Torchrun to run Llama-2 on GKE User Guide
 ## Clone this repo to your local
 ```bash
 git clone https://github.com/Leisureroad/LLM-Tuning-On-GCP.git
@@ -67,5 +67,8 @@ gcloud container node-pools create g2-standard-24 --cluster l4-demo \
 
 ## Apply kubernetes manifests
 ```bash
+sed -i -e "s@PROJECT_ID@${PROJECT_ID}@g" job-deepspeed-torchrun.yaml
+sed -i -e "s@AR_REPO@${AR_REPO}@g" job-deepspeed-torchrun.yaml
+
 kubectl create -f job-deepspeed-torchrun.yaml
 ```
