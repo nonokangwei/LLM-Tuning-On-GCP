@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: deepspeed-shijun-svc
+spec:
+  selector:
+    app: deepspeed-shijun
+  clusterIP: None
+  ports:
+  - name: ssh
+    port: 22
+    targetPort: 2222
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: deepspeed-shijun
+  name: deepspeed-shijun
+spec:
+  podManagementPolicy: "Parallel"
+  serviceName: deepspeed-shijun-svc
+  replicas: 4
+  selector:
+    matchLabels:
+      app: deepspeed-shijun
+  template:
+    metadata:
+      labels:
+        app: deepspeed-shijun
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: 500m
+        gke-gcsfuse/memory-limit: 100Mi
+        gke-gcsfuse/ephemeral-storage-limit: 30Gi
+    spec:
+      serviceAccountName: fuse-sa
+      containers:
+      - image: us-docker.pkg.dev/flius-vpc-2/flius-vpc-2-repo/deepspeed-chat:fromshijun-base
+        name: deepspeed-shijun
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: hostfile
+          mountPath: "/config"
+          readOnly: true
+        - name: log
+          mountPath: /log
+          readOnly: false
+        - mountPath: /dev/shm
+          name: dshm
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /gcs
+          readOnly: true
+        resources:
+          limits:
+            nvidia.com/gpu: 2
+      nodeSelector:
+        cloud.google.com/gke-nodepool: pool-6
+      volumes:
+      - name: hostfile
+        configMap:
+          name: hostfile-config
+      - name: log
+        hostPath:
+          path: /tmp
+          type: Directory
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 48G
+      - name: gcs-fuse-csi-ephemeral
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: flius-vpc-2-bucket
+            mountOptions: "implicit-dirs"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hostfile-config
+data:
+  hostfile: |
+    deepspeed-shijun-0.deepspeed-shijun-svc slots=2
+    deepspeed-shijun-1.deepspeed-shijun-svc slots=2
+    deepspeed-shijun-2.deepspeed-shijun-svc slots=2
+    deepspeed-shijun-3.deepspeed-shijun-svc slots=2

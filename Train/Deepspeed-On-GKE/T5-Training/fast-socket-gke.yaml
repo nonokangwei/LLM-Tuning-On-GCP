@@ -1,0 +1,334 @@
+apiVersion: v1
+kind: Pod
+metadata:
+annotations:
+  components.gke.io/component-name: nccl-fast-socket-installer
+  components.gke.io/component-version: 0.1.9
+creationTimestamp: "2023-09-01T02:40:33Z"
+generateName: nccl-fastsocket-installer-
+labels:
+  controller-revision-hash: 5455bb8f9f
+  k8s-app: nccl-fastsocket-installer
+  name: nccl-fastsocket-installer
+  pod-template-generation: "1"
+managedFields:
+- apiVersion: v1
+  fieldsType: FieldsV1
+  fieldsV1:
+    f:metadata:
+      f:annotations:
+        .: {}
+        f:components.gke.io/component-name: {}
+        f:components.gke.io/component-version: {}
+      f:generateName: {}
+      f:labels:
+        .: {}
+        f:controller-revision-hash: {}
+        f:k8s-app: {}
+        f:name: {}
+        f:pod-template-generation: {}
+      f:ownerReferences:
+        .: {}
+        k:{"uid":"c735c499-0388-4875-85df-e90d2ee850dd"}: {}
+    f:spec:
+      f:affinity:
+        .: {}
+        f:nodeAffinity:
+          .: {}
+          f:requiredDuringSchedulingIgnoredDuringExecution: {}
+      f:containers:
+        k:{"name":"pause"}:
+          .: {}
+          f:image: {}
+          f:imagePullPolicy: {}
+          f:name: {}
+          f:resources: {}
+          f:securityContext:
+            .: {}
+            f:allowPrivilegeEscalation: {}
+            f:capabilities:
+              .: {}
+              f:drop: {}
+            f:privileged: {}
+            f:runAsGroup: {}
+            f:runAsUser: {}
+          f:terminationMessagePath: {}
+          f:terminationMessagePolicy: {}
+      f:dnsPolicy: {}
+      f:enableServiceLinks: {}
+      f:hostNetwork: {}
+      f:hostPID: {}
+      f:initContainers:
+        .: {}
+        k:{"name":"nccl-fastsocket-installer"}:
+          .: {}
+          f:command: {}
+          f:env:
+            .: {}
+            k:{"name":"NCCL_INSTALL_DIR"}:
+              .: {}
+              f:name: {}
+              f:value: {}
+          f:image: {}
+          f:imagePullPolicy: {}
+          f:name: {}
+          f:resources:
+            .: {}
+            f:limits:
+              .: {}
+              f:memory: {}
+            f:requests:
+              .: {}
+              f:memory: {}
+          f:securityContext:
+            .: {}
+            f:privileged: {}
+          f:terminationMessagePath: {}
+          f:terminationMessagePolicy: {}
+          f:volumeMounts:
+            .: {}
+            k:{"mountPath":"/usr/local/nvidia"}:
+              .: {}
+              f:mountPath: {}
+              f:name: {}
+      f:restartPolicy: {}
+      f:schedulerName: {}
+      f:securityContext:
+        .: {}
+        f:seccompProfile:
+          .: {}
+          f:type: {}
+      f:terminationGracePeriodSeconds: {}
+      f:tolerations: {}
+      f:volumes:
+        .: {}
+        k:{"name":"nvidia-install-dir-host"}:
+          .: {}
+          f:hostPath:
+            .: {}
+            f:path: {}
+            f:type: {}
+          f:name: {}
+  manager: kube-controller-manager
+  operation: Update
+  time: "2023-09-01T02:40:33Z"
+- apiVersion: v1
+  fieldsType: FieldsV1
+  fieldsV1:
+    f:status:
+      f:conditions:
+        k:{"type":"ContainersReady"}:
+          .: {}
+          f:lastProbeTime: {}
+          f:lastTransitionTime: {}
+          f:status: {}
+          f:type: {}
+        k:{"type":"Initialized"}:
+          .: {}
+          f:lastProbeTime: {}
+          f:lastTransitionTime: {}
+          f:status: {}
+          f:type: {}
+        k:{"type":"Ready"}:
+          .: {}
+          f:lastProbeTime: {}
+          f:lastTransitionTime: {}
+          f:status: {}
+          f:type: {}
+      f:containerStatuses: {}
+      f:hostIP: {}
+      f:initContainerStatuses: {}
+      f:phase: {}
+      f:podIP: {}
+      f:podIPs:
+        .: {}
+        k:{"ip":"192.168.1.27"}:
+          .: {}
+          f:ip: {}
+      f:startTime: {}
+  manager: kubelet
+  operation: Update
+  subresource: status
+  time: "2023-09-01T02:40:35Z"
+name: nccl-fastsocket-installer-6vfcn
+namespace: kube-system
+ownerReferences:
+- apiVersion: apps/v1
+  blockOwnerDeletion: true
+  controller: true
+  kind: DaemonSet
+  name: nccl-fastsocket-installer
+  uid: c735c499-0388-4875-85df-e90d2ee850dd
+resourceVersion: "620179"
+uid: d2631103-de68-48ec-98e4-6c8e786e53b6
+spec:
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchFields:
+        - key: metadata.name
+          operator: In
+          values:
+          - gke-tcpx-cluster-pool-3-0c159ca2-fmlq
+containers:
+- image: gcr.io/gke-release/pause@sha256:927d98197ec1141a368550822d18fa1c60bdae27b78b0c004f705f548c07814f
+  imagePullPolicy: IfNotPresent
+  name: pause
+  resources: {}
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - all
+    privileged: false
+    runAsGroup: 1000
+    runAsUser: 1000
+  terminationMessagePath: /dev/termination-log
+  terminationMessagePolicy: File
+  volumeMounts:
+  - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    name: kube-api-access-9ptg6
+    readOnly: true
+dnsPolicy: ClusterFirst
+enableServiceLinks: true
+hostNetwork: true
+hostPID: true
+initContainers:
+- command:
+  - sh
+  - -c
+  - |
+    cp /usr/lib/libnccl-net.so $NCCL_INSTALL_DIR
+  env:
+  - name: NCCL_INSTALL_DIR
+    value: /usr/local/nvidia/lib64
+  image: gcr.io/gke-release/fastsocket-installer@sha256:e1213efbfbee8f4491660ed8bad0a24900571920ca4e630f036e9bc83fd61e2f
+  imagePullPolicy: IfNotPresent
+  name: nccl-fastsocket-installer
+  resources:
+    limits:
+      memory: 100Mi
+    requests:
+      memory: 100Mi
+  securityContext:
+    privileged: true
+  terminationMessagePath: /dev/termination-log
+  terminationMessagePolicy: File
+  volumeMounts:
+  - mountPath: /usr/local/nvidia
+    name: nvidia-install-dir-host
+  - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    name: kube-api-access-9ptg6
+    readOnly: true
+nodeName: gke-tcpx-cluster-pool-3-0c159ca2-fmlq
+preemptionPolicy: PreemptLowerPriority
+priority: 0
+restartPolicy: Always
+schedulerName: default-scheduler
+securityContext:
+  seccompProfile:
+    type: RuntimeDefault
+serviceAccount: default
+serviceAccountName: default
+terminationGracePeriodSeconds: 30
+tolerations:
+- operator: Exists
+- key: components.gke.io/gke-managed-components
+  operator: Exists
+- effect: NoExecute
+  key: node.kubernetes.io/not-ready
+  operator: Exists
+- effect: NoExecute
+  key: node.kubernetes.io/unreachable
+  operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/disk-pressure
+  operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/memory-pressure
+  operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/pid-pressure
+  operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/unschedulable
+  operator: Exists
+- effect: NoSchedule
+  key: node.kubernetes.io/network-unavailable
+  operator: Exists
+volumes:
+- hostPath:
+    path: /home/kubernetes/bin/nvidia
+    type: Directory
+  name: nvidia-install-dir-host
+- name: kube-api-access-9ptg6
+  projected:
+    defaultMode: 420
+    sources:
+    - serviceAccountToken:
+        expirationSeconds: 3607
+        path: token
+    - configMap:
+        items:
+        - key: ca.crt
+          path: ca.crt
+        name: kube-root-ca.crt
+    - downwardAPI:
+        items:
+        - fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.namespace
+          path: namespace
+status:
+conditions:
+- lastProbeTime: null
+  lastTransitionTime: "2023-09-01T02:40:34Z"
+  status: "True"
+  type: Initialized
+- lastProbeTime: null
+  lastTransitionTime: "2023-09-01T02:40:35Z"
+  status: "True"
+  type: Ready
+- lastProbeTime: null
+  lastTransitionTime: "2023-09-01T02:40:35Z"
+  status: "True"
+  type: ContainersReady
+- lastProbeTime: null
+  lastTransitionTime: "2023-09-01T02:40:33Z"
+  status: "True"
+  type: PodScheduled
+containerStatuses:
+- containerID: containerd://824361dcc8916639d5cd9f13e9d628eac1991b861f5ff356e8c577e883b4669e
+  image: sha256:80d28bedfe5dec59da9ebf8e6260224ac9008ab5c11dbbe16ee3ba3e4439ac2c
+  imageID: gcr.io/gke-release/pause@sha256:927d98197ec1141a368550822d18fa1c60bdae27b78b0c004f705f548c07814f
+  lastState: {}
+  name: pause
+  ready: true
+  restartCount: 0
+  started: true
+  state:
+    running:
+      startedAt: "2023-09-01T02:40:34Z"
+hostIP: 192.168.1.27
+initContainerStatuses:
+- containerID: containerd://11551bac0e4542761af037b36ec9b371a02246292c7669df45d7fdfea10c32fd
+  image: sha256:c6c304be07954a50e702967966a1759dcf80ed659e8a755ec16a3f331d3b406c
+  imageID: gcr.io/gke-release/fastsocket-installer@sha256:e1213efbfbee8f4491660ed8bad0a24900571920ca4e630f036e9bc83fd61e2f
+  lastState: {}
+  name: nccl-fastsocket-installer
+  ready: true
+  restartCount: 0
+  state:
+    terminated:
+      containerID: containerd://11551bac0e4542761af037b36ec9b371a02246292c7669df45d7fdfea10c32fd
+      exitCode: 0
+      finishedAt: "2023-09-01T02:40:33Z"
+      reason: Completed
+      startedAt: "2023-09-01T02:40:33Z"
+phase: Running
+podIP: 192.168.1.27
+podIPs:
+- ip: 192.168.1.27
+qosClass: Burstable
+startTime: "2023-09-01T02:40:33Z"
