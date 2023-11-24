@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-driver-installer
+  namespace: kube-system
+  labels:
+    k8s-app: nvidia-driver-installer
+spec:
+  selector:
+    matchLabels:
+      k8s-app: nvidia-driver-installer
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: nvidia-driver-installer
+        k8s-app: nvidia-driver-installer
+    spec:
+      priorityClassName: system-node-critical
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cloud.google.com/gke-accelerator
+                operator: Exists
+              - key: cloud.google.com/gke-gpu-driver-version
+                operator: DoesNotExist
+      tolerations:
+      - operator: "Exists"
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: boot
+        hostPath:
+          path: /boot
+      - name: root-mount
+        hostPath:
+          path: /
+      initContainers:
+      - image: gke-nvidia-installer:fixed
+        name: nvidia-driver-installer
+        resources:
+          requests:
+            cpu: 150m
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: boot
+          mountPath: /boot
+        - name: dev
+          mountPath: /dev
+        - name: root-mount
+          mountPath: /root
+        env:
+          - name: NVIDIA_DRIVER_VERSION
+            value: "525.105.17"
+      containers:
+      - image: "gcr.io/google-containers/pause:2.0"
+        name: pause
