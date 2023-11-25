@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: gui
+  name: gui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gui
+  template:
+    metadata:
+      labels:
+        app: gui
+    spec:
+      containers:
+      - image: asia-southeast1-docker.pkg.dev/speedy-victory-336109/singapore-repo/fschat:v1
+        name: gui
+        command:
+          - python3
+          - -m
+          - fastchat.serve.gradio_web_server
+          - --controller
+          - http://controller-svc:21001        
+        ports:
+        - containerPort: 7860
+      nodeSelector:
+        cloud.google.com/gke-nodepool: default-pool        
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gui-svc
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 7860
+  selector:
+    app: gui
+  type: LoadBalancer

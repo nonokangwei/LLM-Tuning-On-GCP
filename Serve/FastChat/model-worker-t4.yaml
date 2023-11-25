@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: model-worker
+  name: model-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: model-worker
+  template:
+    metadata:
+      labels:
+        app: model-worker
+    spec:
+      containers:
+      - image: asia-southeast1-docker.pkg.dev/speedy-victory-336109/singapore-repo/fschat:v1
+        volumeMounts:
+        - mountPath: /data
+          name: models-vol
+        name: model-worker
+        command:
+          - python3
+          - -m
+          - fastchat.serve.model_worker
+          - --model-path 
+          - /data/chinese-alpaca-plus-7b
+          - --host
+          - "0.0.0.0"
+          - --controller 
+          - http://controller-svc:21001
+          - --worker-address 
+          - http://model-worker-svc:21002
+          - --max-gpu-memory 
+          - 14GiB
+          - --num-gpus
+          - "2"
+        ports:
+        - containerPort: 21002
+        resources:
+          requests:
+            nvidia.com/gpu: 2
+          limits:
+            nvidia.com/gpu: 2
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-t4
+      volumes:
+      - name: models-vol
+        persistentVolumeClaim:
+          claimName: models-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: model-worker-svc
+spec:
+  ports:
+  - port: 21002
+    protocol: TCP
+    targetPort: 21002
+  selector:
+    app: model-worker
+  type: ClusterIP
