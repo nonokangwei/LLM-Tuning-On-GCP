@@ -45,22 +45,6 @@ gcloud compute firewall-rules create allow-vllm-server \
    --source-ranges=0.0.0.0/0 \
    --target-tags=vllm-server-tag
 
-
-# An example
-gcloud compute instances create vllm-a100-40 \
-    --project=becky-daily-test-project \
-    --zone=asia-southeast1-c \
-    --machine-type=a2-highgpu-1g \
-    --network-interface=network-tier=PREMIUM,stack-type=IPV4_ONLY,subnet=subnet-singapore \
-    --metadata=enable-oslogin=true \
-    --maintenance-policy=TERMINATE \
-    --provisioning-model=STANDARD \
-    --service-account=sa-admin@becky-daily-test-project.iam.gserviceaccount.com \
-    --accelerator=count=1,type=nvidia-tesla-a100 \
-    --tags=vllm-server-tag \
-    --boot-disk-size=${BOOT_DISK_SZ:-100} \
-    --boot-disk-type=pd-balanced
-
 ```
 
 
@@ -191,7 +175,6 @@ python3 -O -u -m vllm.entrypoints.api_server\
     --host=0.0.0.0 \
     --port=8000 \
     --model=models/llama-2-7b-chat-hf \
-    --swap-space 16 \
     --tensor-parallel-size 2
 
 
@@ -200,9 +183,7 @@ python3 -O -u -m vllm.entrypoints.api_server\
     --host=0.0.0.0 \
     --port=8000 \
     --model=models/merged_model \
-    --tensor-parallel-size 2 \
-    --swap-space 16
-
+    --tensor-parallel-size 2 
 ```
 
 Then you can send post request to query the model
