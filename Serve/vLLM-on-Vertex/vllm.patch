@@ -1,0 +1,69 @@
+diff --git a/setup.py b/setup.py
+index 660b519..66cfdee 100644
+--- a/setup.py
++++ b/setup.py
+@@ -63,10 +63,11 @@ def get_torch_arch_list() -> Set[str]:
+     arch_list = torch_arch_list.intersection(valid_archs)
+     # If none of the specified architectures are valid, raise an error.
+     if not arch_list:
+-        raise RuntimeError(
++        print(
+             "None of the CUDA architectures in `TORCH_CUDA_ARCH_LIST` env "
+             f"variable ({env_arch_list}) is supported. "
+             f"Supported CUDA architectures are: {valid_archs}.")
++        return None
+     invalid_arch_list = torch_arch_list - valid_archs
+     if invalid_arch_list:
+         warnings.warn(
+diff --git a/vllm/entrypoints/api_server.py b/vllm/entrypoints/api_server.py
+index fb29837..d8058ba 100644
+--- a/vllm/entrypoints/api_server.py
++++ b/vllm/entrypoints/api_server.py
+@@ -16,6 +16,14 @@ TIMEOUT_TO_PREVENT_DEADLOCK = 1  # seconds.
+ app = FastAPI()
+ engine = None
+ 
++# Required by Vertex deployment.
++@app.get("/ping")
++async def ping() -> Response:
++    return Response(status_code=200)
++
++def format_output(prompt: str, output: str):
++    output = output.strip("\n")
++    return f"Prompt:\n{prompt.strip()}\nOutput:\n{output}"
+ 
+ @app.get("/health")
+ async def health() -> Response:
+@@ -33,6 +41,9 @@ async def generate(request: Request) -> Response:
+     - other fields: the sampling parameters (See `SamplingParams` for details).
+     """
+     request_dict = await request.json()
++    is_on_vertex = "instances" in request_dict
++    if is_on_vertex:
++        request_dict = request_dict["instances"][0]
+     prompt = request_dict.pop("prompt")
+     stream = request_dict.pop("stream", False)
+     sampling_params = SamplingParams(**request_dict)
+@@ -44,10 +55,8 @@ async def generate(request: Request) -> Response:
+     async def stream_results() -> AsyncGenerator[bytes, None]:
+         async for request_output in results_generator:
+             prompt = request_output.prompt
+-            text_outputs = [
+-                prompt + output.text for output in request_output.outputs
+-            ]
+-            ret = {"text": text_outputs}
++            text_outputs = [output.text.strip("\n") for output in request_output.outputs]
++            ret = {"predictions": text_outputs}
+             yield (json.dumps(ret) + "\0").encode("utf-8")
+ 
+     if stream:
+@@ -64,8 +73,8 @@ async def generate(request: Request) -> Response:
+ 
+     assert final_output is not None
+     prompt = final_output.prompt
+-    text_outputs = [prompt + output.text for output in final_output.outputs]
+-    ret = {"text": text_outputs}
++    text_outputs = [format_output(prompt, output.text) for output in final_output.outputs]
++    ret = {"predictions": text_outputs}
+     return JSONResponse(ret)
+ 
