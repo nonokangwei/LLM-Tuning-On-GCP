@@ -148,7 +148,7 @@ spec:
           name: dshm
         - name: gcs-fuse-csi-ephemeral
           mountPath: /gcs-mount
-      serviceAccountName: l4-demo
+      serviceAccountName: vllm-l4
       volumes:
       - name: dshm
         emptyDir:
@@ -217,6 +217,7 @@ Check the logs and make sure there are no errors:
 kubectl get service vllm_lb_service
 ```
 
+you will see the output contains lb external ip.
 ```bash
 NAME            TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
 vllm-lb-service   LoadBalancer   <CLUSTER-IP>   <EXTERNAL-IP>   8000:30875/TCP   2m31s
