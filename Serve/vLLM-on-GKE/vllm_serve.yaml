@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-l4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-l4
+  template:
+    metadata:
+      labels:
+        app: vllm-l4
+      annotations:
+        kubectl.kubernetes.io/default-container: vllm-l4
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/memory-limit: 400Mi
+        gke-gcsfuse/ephemeral-storage-limit: 30Gi
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: vllm-l4
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:0.1
+        command: ["python3", "/root/scripts/launcher.py", "--tensor_parallel_size=$(TENSOR_PARALLEL_SIZE)", "--model_gcs_uri=$(MODEL_GCS_URI)", "--peft_model_gcs_uri=$(PEFT_MODEL_GCS_URI)"]
+        resources:
+          limits:
+            nvidia.com/gpu: 2
+        env:
+        - name: TENSOR_PARALLEL_SIZE
+          value: "2"
+        - name: MODEL_GCS_URI
+          value: gs://${BUCKET_NAME}/llama-2-7b-chat-hf
+        - name: PEFT_MODEL_GCS_URI
+          value: gs://${BUCKET_NAME}/peft_model
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /gcs-mount
+      serviceAccountName: vllm-l4
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 48G
+      - name: gcs-fuse-csi-ephemeral
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ${BUCKET_NAME}
+            mountOptions: "implicit-dirs"
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
