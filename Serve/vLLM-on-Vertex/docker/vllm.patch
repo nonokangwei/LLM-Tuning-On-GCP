@@ -66,4 +66,5 @@ index fb29837..d8058ba 100644
 +    text_outputs = [format_output(prompt, output.text) for output in final_output.outputs]
 +    ret = {"predictions": text_outputs}
      return JSONResponse(ret)
- 
+
+     
