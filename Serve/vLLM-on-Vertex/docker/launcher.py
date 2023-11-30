@@ -1,40 +1,43 @@
 # python3 luanch.py --model_gcs_uri=gcs://bucket/base_model --peft_model_gcs_uri=gcs://bucket/peft_model
-
-
 import argparse
 import os
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tensor_parallel_size", nargs='?', type=int)
+    # parser.add_argument("--tensor-parallel-size", nargs='?', type=int)
     parser.add_argument("--model_gcs_uri", nargs='?', type=str)
     parser.add_argument("--peft_model_gcs_uri", nargs='?', type=str)
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 def download_model(model_gcs_uri):
     print ("download model from gcs")
     model_path = "/gcs-mount/" + "/".join(model_gcs_uri.split("/")[3:])
-    os.system("gsutil cp %s %s" % (model_gcs_uri, model_path))
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
+    os.system("gsutil -m cp -r %s %s" % (model_gcs_uri + "/*", model_path))
     print ("download model completed")
     return model_path
 
 
 def main():
-    args = get_args()
+    args, vllm_args = get_args()
 
-    is_vertex_ai = os.path.exists("AIP_FRAMEWORK")
+    is_vertex_ai = os.environ.get("AIP_FRAMEWORK")
 
     if is_vertex_ai is not None:
         # the runtime is vertex ai custom serving environment
         print ("the runtime is vertex ai custom serving environment")
-        serve_port = 7080
+
+        if args.model_gcs_uri is not None:
+            model_path = download_model(args.model_gcs_uri)
+        if args.peft_model_gcs_uri is not None:
+            peft_model_path = download_model(args.peft_model_gcs_uri)
+
     else:
         # the runtime is docker
         print ("the runtime is docker")
-        serve_port = 8000
-
     
     if args.model_gcs_uri is not None:
         print ("load your model from gcs")
@@ -52,17 +55,17 @@ def main():
             
             # start vllm server
             print ("serve gcs peft fine tuned model")
-            result = os.system("python3 -m vllm.entrypoints.api_server --tensor-parallel-size='%s' --model='%s' --host=0.0.0.0 --port='%s'" % (args.tensor_parallel_size, merged_model_path, str(serve_port)))
+            result = os.system("python3 -m vllm.entrypoints.api_server --model='%s' %s" % (merged_model_path, " ".join(vllm_args)))
             print (result)
         else:
             # start vllm server
             print ("serve gcs model")
-            result = os.system("python3 -m vllm.entrypoints.api_server  --tensor-parallel-size='%s' --model='%s' --host=0.0.0.0 --port='%s'" % (args.tensor_parallel_size, merged_model_path, str(serve_port)))
+            result = os.system("python3 -m vllm.entrypoints.api_server  --model='%s' %s" % ( model_path, " ".join(vllm_args)))
             print (result)
     else:
         print ("you do not specify a model, the default model(facebook/opt-125m) will be used for serving.")
 
-        result = os.system("python3 -m vllm.entrypoints.api_server  --tensor-parallel-size='%s' --host=0.0.0.0 --port='%s'" % (args.tensor_parallel_size, str(serve_port)))
+        result = os.system("python3 -m vllm.entrypoints.api_server  %s" % (" ".join(vllm_args)))
         print (result)
 
 
