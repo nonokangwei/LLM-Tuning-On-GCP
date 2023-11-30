@@ -38,7 +38,7 @@ def main():
         else:
             # start vllm server
             print ("serve gcs model")
-            result = os.system("python3 -m vllm.entrypoints.api_server  --tensor-parallel-size='%s' --model='%s' --host=0.0.0.0 --port=8000" % (args.tensor_parallel_size, merged_model_path))
+            result = os.system("python3 -m vllm.entrypoints.api_server  --tensor-parallel-size='%s' --model='%s' --host=0.0.0.0 --port=8000" % (args.tensor_parallel_size, model_path))
             print (result)
     else:
         print ("you do not specify a model, the default model(facebook/opt-125m) will be used for serving.")
