@@ -1,5 +1,5 @@
 # Example usage:
-# python3 merge_peft.py --base_model=models/base_model --peft_model=models/lora_model --saved_path=models/merged_model
+# python3 merge_peft.py --base_model=models/base_model --peft_model=models/lora_model --saved_path=models/peft_merged_model
 
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -36,7 +36,7 @@ def main():
     model.save_pretrained(args.saved_path)
     tokenizer.save_pretrained(args.saved_path)
     
-    print("[4/4] Save merged model to local path")
+    print("[4/4] Save merged model to gcs")
 
 if __name__ == "__main__" :
     main()
