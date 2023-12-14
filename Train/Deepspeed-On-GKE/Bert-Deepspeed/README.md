@@ -1,37 +1,35 @@
-# Use Torchrun to run Llama-2 on GKE User Guide
+# Use Deepspeed to run T5 on GKE User Guide
+In this repo, we will guide you to use deepspeed to train T5 model on GKE step by step. Below are detail steps,
+
 ## Clone this repo to your local
-```bash
-git clone https://github.com/Leisureroad/LLM-Tuning-On-GCP.git
-cd LLM-Tuning-On-GCP/Train/Deepspeed-On-GKE/Torchrun
+```
+## clone this repo to your local, then
+cd LLM-Tuning-On-GCP/Train/Deepspeed-On-GKE/Bert-Deepspeed
+```
+
+## Set environment variables
+```
+PROJECT_ID=$(gcloud config get project) e.g., flius-vpc-2
+REGION=<GCP region> e.g., us-central1
+AR_REPO=<artifacts registry repo name> e.g., flius-vpc-2-repo
 ```
 
 ## Generate ssh private and public key
-```bash
+```
 ssh-keygen -t rsa -f ./id_rsa
 cp id_rsa.pub authorized_keys
 ```
 
-## Access to llama2 model
-We will use huggingface to do training, so you need to request the access to download llama2 model in huggingface.
-https://huggingface.co/meta-llama/Llama-2-7b-chat-hf/tree/main
-
-Create an access token for huggingface (https://huggingface.co/settings/tokens), and create a local token file.
-```bash
-touch token
-```
-
 ## Use cloud build to build and push docker image to artifacts registry.
-```bash
-PROJECT_ID=<your project id>
-AR_REPO=<artifacts registry repo name>
-gcloud builds submit --tag us-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/deepspeed-chat:torchrun
+```
+cp Dockerfile.ubuntu18.04.base Dockerfile
+gcloud builds submit --tag us-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/bert:deepspeed-base
+cp Dockerfile.ubuntu18.04.hellodeepspeed Dockerfile
+sed -i -e "s@PROJECT_ID@${PROJECT_ID}@g" Dockerfile
+sed -i -e "s@AR_REPO@${AR_REPO}@g" Dockerfile
+gcloud builds submit --tag us-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/bert:deepspeed
 ```
 
-## Choose your region and set your project:
-```bash
-export REGION=us-central1
-export PROJECT_ID=$(gcloud config get project)
-```
 ## Create GKE cluster and nodepool
 Create a GKE cluster:
 ```bash
@@ -59,16 +57,23 @@ gcloud container node-pools create g2-standard-24 --cluster l4-demo \
   --machine-type g2-standard-24 \
   --ephemeral-storage-local-ssd=count=2 \
   --enable-autoscaling --enable-image-streaming \
-  --num-nodes=0 --min-nodes=0 --max-nodes=3 \
+  --num-nodes=0 --min-nodes=0 --max-nodes=4 \
   --shielded-secure-boot \
   --shielded-integrity-monitoring \
   --node-locations $REGION-a,$REGION-b --region $REGION --spot
 ```
-
 ## Apply kubernetes manifests
-```bash
-sed -i -e "s@PROJECT_ID@${PROJECT_ID}@g" job-deepspeed-torchrun.yaml
-sed -i -e "s@AR_REPO@${AR_REPO}@g" job-deepspeed-torchrun.yaml
+```
+cp statefulset-bert-deepspeed-template.yaml statefulset-bert-deepspeed.yaml
+sed -i -e "s@PROJECT_ID@${PROJECT_ID}@g" statefulset-bert-deepspeed.yaml
+sed -i -e "s@AR_REPO@${AR_REPO}@g" statefulset-bert-deepspeed.yaml
 
-kubectl create -f job-deepspeed-torchrun.yaml
+kubectl apply -f statefulset-bert-deepspeed.yaml
+```
+
+## Run deepspeed inside a pod
+```
+
+cd /tmp/DeepSpeedExamples/training/HelloDeepSpeed
+deepspeed  --hostfile=/config/hostfile train_bert.py --checkpoint_dir .
 ```

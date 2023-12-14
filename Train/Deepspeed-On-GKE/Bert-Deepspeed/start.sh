@@ -5,4 +5,3 @@ sudo cp ssh_config /etc/ssh/ssh_config
 sudo service ssh start
 sudo env >> /etc/environment
 while true; do sleep 10; done
-
