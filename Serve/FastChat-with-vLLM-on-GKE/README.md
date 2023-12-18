@@ -31,7 +31,7 @@ gcloud artifacts repositories create artifact-vllm \
     --immutable-tags \
     --async
 
-gcloud builds submit --tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:0.1
+gcloud builds submit --tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:fastchat
 ```
 
 ## Creating the GKE cluster with L4 nodepools
