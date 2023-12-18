@@ -1,4 +1,3 @@
-#FROM europe-docker.pkg.dev/vertex-ai/training/pytorch-gpu.1-10:latest
 FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-devel
 
 WORKDIR /
@@ -40,7 +39,6 @@ RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/ss
 RUN sed 's@session\\s*required\\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 
 # RUN sudo service ssh start
-#RUN ssh-keygen -t rsa
 ADD id_rsa /root/.ssh/id_rsa
 RUN chmod 0400 /root/.ssh/id_rsa
 RUN touch /root/.ssh/config && \
@@ -56,7 +54,6 @@ RUN chmod 700 /root/.ssh/
 RUN pip install transformers==4.26.0 datasets==2.9.0 accelerate==0.16.0 evaluate==0.4.0 google-cloud-storage==2.7.0 google-cloud-aiplatform==1.21.0 tensorboard==2.11.2 tensorflow==2.11.0 tensorflow-io==0.27.0 tensorflow-io-gcs-filesystem==0.27.0
 RUN pip install ninja rouge-score nltk  py7zr
 
-#ENV PATH=/usr/local/cuda/bin:$PATH
 RUN DS_BUILD_CPU_ADAM=1 \
     DS_BUILD_FUSED_ADAM=1 \
     DS_BUILD_FUSED_LAMB=1 \
@@ -65,16 +62,8 @@ RUN DS_BUILD_CPU_ADAM=1 \
     pip install deepspeed==0.9.2
 
 # copy deepspeed config file
-COPY configs /configs
-# copy deepspeed launcher
-#COPY run_seq2seq_deepspeed.py run_seq2seq_deepspeed.py
-#COPY run_seq2seq_deepspeed-args.py run_seq2seq_deepspeed-args.py
-#COPY get_hostfile.py get_hostfile.py
+ADD configs /configs
 
-# Sets up the entry point to invoke the trainer with deepspeed
-#ENTRYPOINT ["python", "get_hostfile.py"]
-#ENTRYPOINT ["deepspeed", "--hostfile=./hostfile", "run_seq2seq_deepspeed-args.py"]
-
-ADD run_seq2seq_deepspeed-args-Copy1.py run.py
+ADD run_seq2seq_deepspeed-args.py run.py
 ADD start.sh .
 CMD ["/bin/sh", "-c", "/start.sh"]

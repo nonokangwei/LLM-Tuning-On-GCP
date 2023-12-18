@@ -1,4 +1,4 @@
-FROM us-docker.pkg.dev/flius-vpc-2/flius-vpc-2-repo/deepspeed:ubuntu18.04-base
+FROM us-docker.pkg.dev/PROJECT_ID/AR_REPO/bert:deepspeed-base
 
 ### ssh key ###
 RUN sudo service ssh start
@@ -13,7 +13,7 @@ RUN git clone https://github.com/microsoft/DeepSpeedExamples.git
 RUN cd DeepSpeedExamples/training/HelloDeepSpeed && \
     sudo apt-get update && \
     sudo apt install -y python-pip && \
-    pip install -r requirements.txt
+    sudo pip install -r requirements.txt
 
 ADD start.sh .
 CMD ["/bin/sh", "-c", "/tmp/start.sh"]
