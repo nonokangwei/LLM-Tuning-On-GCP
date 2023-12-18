@@ -6,7 +6,7 @@ In this guide, we will introduce how to use vLLM serve Llama base model, pretrai
 ## Prerequisites
 *   A terminal with `kubectl` and `gcloud` installed. Cloud Shell works great!
 *   L4 GPUs quota to be able to run additional 2 L4 GPUs
-*   You have downloaded a llama2 base model,  pretrained model or Lora adapter model on GCS bucket
+*   You have access of llama2 model,  or you have compelete Training and had pretrained model or Lora adapter model on GCS bucket
 
 ## Create GPU VM instance
 
@@ -89,9 +89,14 @@ mkdir models/base_model
 mkdir models/lora_model
 mkdir models/pretrained_model
 
-gcloud storage cp gs://llama2ft-project-kangwe-poc-unique/llama-7b/* models/base_model
-gcloud storage cp gs://llama2ft-project-kangwe-poc-unique-uw4/model/* models/lora_model
-gcloud storage cp gs://lsj-public/aiplatform-custom-job-2023-10-23-08:22:55.188/model/* models/pretrained_model
+cd models/base_model
+gcloud storage cp gs://your_base_model_path
+
+cd models/lora_model
+gcloud storage cp gs://your_lora_model_path
+
+cd models/pretrained_model
+gcloud storage cp gs://your_pretrained_model_path
 
 ```
 

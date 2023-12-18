@@ -13,17 +13,14 @@ spec:
         app: model-worker-l4
     spec:
       containers:
-      - image: asia-southeast1-docker.pkg.dev/speedy-victory-336109/singapore-repo/fschat:v1
-        volumeMounts:
-        - mountPath: /data
-          name: models-vol
+      - image: us-central1-docker.pkg.dev/becky-daily-test-project/artifact-vllm/vllm-server:fastchat
         name: model-worker-l4
         command:
           - python3
           - -m
           - fastchat.serve.model_worker
           - --model-path
-          - /data/chinese-alpaca-plus-7b
+          - /gcs-mount/llama-2-7b-chat-hf
           - --host
           - "0.0.0.0"
           - --controller 
@@ -37,12 +34,25 @@ spec:
             nvidia.com/gpu: 1
           limits:
             nvidia.com/gpu: 1
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /gcs-mount
+      serviceAccountName: vllm-l4
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 48G
+      - name: gcs-fuse-csi-ephemeral
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ${BUCKET_NAME}
+            mountOptions: "implicit-dirs"
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
-      volumes:
-      - name: models-vol
-        persistentVolumeClaim:
-          claimName: models-pvc
 
 ---
 apiVersion: v1
