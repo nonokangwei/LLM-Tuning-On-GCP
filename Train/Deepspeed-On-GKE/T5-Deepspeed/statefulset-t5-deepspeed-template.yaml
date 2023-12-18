@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: deepspeed-shijun-svc
+  name: t5-deepspeed-svc
 spec:
   selector:
-    app: deepspeed-shijun
+    app: t5-deepspeed
   clusterIP: None
   ports:
   - name: ssh
@@ -14,26 +14,26 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   labels:
-    app: deepspeed-shijun
-  name: deepspeed-shijun
+    app: t5-deepspeed
+  name: t5-deepspeed
 spec:
   podManagementPolicy: "Parallel"
-  serviceName: deepspeed-shijun-svc
-  replicas: 4 
+  serviceName: t5-deepspeed-svc
+  replicas: 4
   selector:
     matchLabels:
-      app: deepspeed-shijun
+      app: t5-deepspeed
   template:
     metadata:
       labels:
-        app: deepspeed-shijun
+        app: t5-deepspeed
       annotations:
         gke-gcsfuse/volumes: "true"
     spec:
       serviceAccountName: fuse-sa
       containers:
-      - image: us-docker.pkg.dev/flius-vpc-2/flius-vpc-2-repo/deepspeed:fromshijun-base
-        name: deepspeed-shijun
+      - image: us-docker.pkg.dev/PROJECT_ID/AR_REPO/t5:deepspeed
+        name: t5-deepspeed
         #command: ["/bin/sh", "-c", "/start.sh"]
         imagePullPolicy: Always
         volumeMounts:
@@ -47,17 +47,10 @@ spec:
           name: dshm
         - name: gcs-fuse-csi-ephemeral
           mountPath: /gcs
-          readOnly: true
+          readOnly: false
         resources:
           limits:
             nvidia.com/gpu: 2
-#            memory: 48G
-#            cpu: 14 
-          requests:
-#            memory: 48G
-#            cpu: 10
-      nodeSelector:
-        cloud.google.com/gke-nodepool: pool-4
       volumes:
       - name: hostfile
         configMap:
@@ -73,9 +66,8 @@ spec:
       - name: gcs-fuse-csi-ephemeral
         csi:
           driver: gcsfuse.csi.storage.gke.io
-          #readOnly: true
           volumeAttributes:
-            bucketName: flius-vpc-2-bucket
+            bucketName: BUCKET_NAME
             mountOptions: "implicit-dirs"
 ---
 apiVersion: v1
@@ -84,7 +76,7 @@ metadata:
   name: hostfile-config
 data:
   hostfile: |
-    deepspeed-shijun-0.deepspeed-shijun-svc slots=2
-    deepspeed-shijun-1.deepspeed-shijun-svc slots=2
-    deepspeed-shijun-2.deepspeed-shijun-svc slots=2
-    deepspeed-shijun-3.deepspeed-shijun-svc slots=2
+    t5-deepspeed-0.t5-deepspeed-svc slots=2
+    t5-deepspeed-1.t5-deepspeed-svc slots=2
+    t5-deepspeed-2.t5-deepspeed-svc slots=2
+    t5-deepspeed-3.t5-deepspeed-svc slots=2

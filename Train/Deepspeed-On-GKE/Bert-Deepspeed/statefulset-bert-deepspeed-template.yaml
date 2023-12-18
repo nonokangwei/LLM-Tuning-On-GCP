@@ -1,50 +1,48 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: deepspeed-new-svc
+  name: bert-deepspeed-svc
 spec:
   selector:
-    app: deepspeed-new
+    app: bert-deepspeed
   clusterIP: None
   ports:
   - name: ssh
     port: 22
 ---
 apiVersion: apps/v1
-kind: StatefulSet 
+kind: StatefulSet
 metadata:
   labels:
-    app: deepspeed-new 
-  name: deepspeed-new
+    app: bert-deepspeed
+  name: bert-deepspeed
 spec:
   podManagementPolicy: "Parallel"
-  serviceName: deepspeed-new-svc
+  serviceName: bert-deepspeed-svc
   replicas: 3
   selector:
     matchLabels:
-      app: deepspeed-new
+      app: bert-deepspeed
   template:
     metadata:
       labels:
-        app: deepspeed-new
+        app: bert-deepspeed
     spec:
       containers:
-      - image: us-docker.pkg.dev/flius-vpc-2/flius-vpc-2-repo/deepspeed:ubuntu18.04-hellodeepspeed
-        name: deepspeed-new
+      - image: us-docker.pkg.dev/PROJECT_ID/AR_REPO/bert:deepspeed
+        name: bert-deepspeed
         imagePullPolicy: Always
         volumeMounts:
-        - name: hostfile 
+        - name: hostfile
           mountPath: "/config"
           readOnly: true
         - mountPath: /dev/shm
           name: dshm
         resources:
           limits:
-            nvidia.com/gpu: 1 
-     # nodeSelector:
-     #   cloud.google.com/gke-nodepool: pool-2
+            nvidia.com/gpu: 1
       volumes:
-      - name: hostfile 
+      - name: hostfile
         configMap:
           name: hostfile-config
       - name: dshm
@@ -55,9 +53,9 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: hostfile-config 
+  name: hostfile-config
 data:
   hostfile: |
-    deepspeed-new-0.deepspeed-new-svc slots=1 
-    deepspeed-new-1.deepspeed-new-svc slots=1
-    deepspeed-new-2.deepspeed-new-svc slots=1 
+    bert-deepspeed-0.bert-deepspeed-svc slots=1
+    bert-deepspeed-1.bert-deepspeed-svc slots=1
+    bert-deepspeed-2.bert-deepspeed-svc slots=1
