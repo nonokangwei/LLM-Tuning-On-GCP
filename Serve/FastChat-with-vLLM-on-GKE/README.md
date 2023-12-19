@@ -1,6 +1,6 @@
-# Serve Llama 7b using vLLM on GKE L4 GPUs
+# Serve Llama 7b using FastChat as front api serer, vLLM as backend on GKE L4 GPUs
 
-In this guide, we will introduce how to use vLLM serve Llama base model, pretrained model and Lora adapter model on GKE.
+In this guide, we will introduce how to serve Llama base model, pretrained model and Lora adapter model on GKE. We will use FastChat as the front Chatbot api server, vLLM as backend serving server.
 
 
 ## Prerequisites
@@ -31,7 +31,7 @@ gcloud artifacts repositories create artifact-vllm \
     --immutable-tags \
     --async
 
-gcloud builds submit --tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:0.1
+gcloud builds submit --tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:fastchat
 ```
 
 ## Creating the GKE cluster with L4 nodepools
@@ -107,7 +107,7 @@ kubectl create secret generic vllm-l4 \
 ```
 
 Let's use Kubernetes Job to download the Llama 2 7B model from HuggingFace. The file download-model.yaml in this repo shows how to do this:
-[embedmd]:# (download-llama2-7b.yaml)
+[embedmd]:# (download_llama2-7b.yaml)
 ```yaml
 apiVersion: batch/v1
 kind: Job
@@ -166,155 +166,192 @@ kubectl apply -f download-llama2-7b.yaml
 ```
 
 
-### Create deployment
+### Create controller deployment
 
-Create a file named vllm.yaml with the following content. 
+To serve using the fastchat web UI, you need three main components: web servers that interface with users, model workers that host one or more models, and a controller to coordinate the webserver and model workers. 
 
-Inside the YAML file the following settings are used:
+Launch the controller
 
-- **TENSOR_PARALLEL_SIZE**, optional. Setting to the number of GPUs to distributly inference and serve.   This has to be set to 2 because 2 x NVIDIA L4 GPUs are used.
-- **MODEL_GCS_URI**, optional. Setting to the gcs uri of llama2 base model, pretain model or full-paremeter fine tuned model. If you do not specify it, vllm will use default model: facebook/opt-125m
-- **PEFT_MODEL_GCS_URI**, optional. Setting to the gcs uri of lora adapter model. vllm do not support lora adapter, so we need to merge base model and lora adapter firstly.
-
-[embedmd]:# (vllm_serve.yaml)
+[embedmd]:# (fastchat-controller.yaml)
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vllm-l4
+  creationTimestamp: null
+  labels:
+    app: controller
+  name: controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vllm-l4
+      app: controller
   template:
     metadata:
       labels:
-        app: vllm-l4
-      annotations:
-        kubectl.kubernetes.io/default-container: vllm-l4
-        gke-gcsfuse/volumes: "true"
-        gke-gcsfuse/memory-limit: 400Mi
-        gke-gcsfuse/ephemeral-storage-limit: 30Gi
+        app: controller
     spec:
-      terminationGracePeriodSeconds: 60
       containers:
-      - name: vllm-l4
-        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:0.1
-        command: ["python3", "/root/scripts/launcher.py", "--tensor_parallel_size=$(TENSOR_PARALLEL_SIZE)", "--model_gcs_uri=$(MODEL_GCS_URI)", "--peft_model_gcs_uri=$(PEFT_MODEL_GCS_URI)"]
-        resources:
-          limits:
-            nvidia.com/gpu: 2
-        env:
-        - name: TENSOR_PARALLEL_SIZE
-          value: "2"
-        - name: MODEL_GCS_URI
-          value: gs://${BUCKET_NAME}/llama-2-7b-chat-hf
-        - name: PEFT_MODEL_GCS_URI
-          value: gs://${BUCKET_NAME}/peft_model
-        volumeMounts:
-        - mountPath: /dev/shm
-          name: dshm
-        - name: gcs-fuse-csi-ephemeral
-          mountPath: /gcs-mount
-      serviceAccountName: vllm-l4
-      volumes:
-      - name: dshm
-        emptyDir:
-          medium: Memory
-          sizeLimit: 48G
-      - name: gcs-fuse-csi-ephemeral
-        csi:
-          driver: gcsfuse.csi.storage.gke.io
-          volumeAttributes:
-            bucketName: ${BUCKET_NAME}
-            mountOptions: "implicit-dirs"
+      - image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:fastchat
+        name: controller
+        command:
+          - python3
+          - -m
+          - fastchat.serve.controller
+          - --host
+          - "0.0.0.0"
+          - --port
+          - "21001"
+        ports:
+        - containerPort: 21001
       nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-l4
-```
+        cloud.google.com/gke-nodepool: default-pool
 
-Create the deployment for serving:
-```bash
-kubectl apply -f vllm_serve.yaml
-```
+---
 
-Check the logs and make sure there are no errors:
-```bash
-kubectl logs -l app=vllm-l4
-```
-
-The deployment will take about 30 mins to complete, have a coffee and wait the logs show below information:
-```bash
-2023-11-26 14:47:34,978 INFO worker.py:1673 -- Started a local Ray instance.
-INFO 11-26 14:47:36 llm_engine.py:72] Initializing an LLM engine with config: model='/gcs-mount/peft_merged_model', tokenizer='/gcs-mount/peft_merged_model', tokenizer_mode=auto, revision=None, trust_remote_code=False, dtype=torch.float16, max_seq_len=2048, download_dir=None, load_format=auto, tensor_parallel_size=2, quantization=None, seed=0)
-Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
-INFO 11-26 14:47:55 llm_engine.py:205] # GPU blocks: 3327, # CPU blocks: 1024
-INFO:     Started server process [49]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-```
-
-
-### Create Service
-
-After the vllm serve deployment was done, you can use the vllm_service.yaml to expose it to a service.
-
-[embedmd]:# (vllm_lb_service.yaml)
-```yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: vllm-lb-service
+  name: controller-svc
 spec:
-  type: LoadBalancer
-  selector:
-    app: vllm-l4
   ports:
-  - protocol: TCP
-    port: 8000
-    targetPort: 8000
+  - port: 21001
+    protocol: TCP
+    targetPort: 21001
+  selector:
+    app: controller
+  type: ClusterIP
 ```
 
 Create the deployment for serving:
 ```bash
-kubectl apply -f vllm_lb_service.yaml
+kubectl apply -f fastchat-controller.yaml
 ```
 
-Check the logs and make sure there are no errors:
+### Create model worker deployment
+
+To serve using the fastchat web UI, you need three main components: web servers that interface with users, model workers that host one or more models, and a controller to coordinate the webserver and model workers. 
+
+Launch the controller
+
+[embedmd]:# (fastchat-controller.yaml)
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: controller
+  name: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: controller
+  template:
+    metadata:
+      labels:
+        app: controller
+    spec:
+      containers:
+      - image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:fastchat
+        name: controller
+        command:
+          - python3
+          - -m
+          - fastchat.serve.controller
+          - --host
+          - "0.0.0.0"
+          - --port
+          - "21001"
+        ports:
+        - containerPort: 21001
+      nodeSelector:
+        cloud.google.com/gke-nodepool: default-pool
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-svc
+spec:
+  ports:
+  - port: 21001
+    protocol: TCP
+    targetPort: 21001
+  selector:
+    app: controller
+  type: ClusterIP
+```
+
+Create the deployment for serving:
 ```bash
-kubectl get service vllm_lb_service
+kubectl apply -f fastchat-controller.yaml
 ```
 
-you will see the output contains lb external ip.
-```bash
-NAME            TYPE           CLUSTER-IP     EXTERNAL-IP      PORT(S)          AGE
-vllm-lb-service   LoadBalancer   <CLUSTER-IP>   <EXTERNAL-IP>   8000:30875/TCP   2m31s
+### Create FastChat Gradio web server deployment
+
+Launch the Gradio web server
+
+[embedmd]:# (fastchat-controller.yaml)
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: gui
+  name: gui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gui
+  template:
+    metadata:
+      labels:
+        app: gui
+    spec:
+      containers:
+      - image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:fastchat
+        name: gui
+        command:
+          - python3
+          - -m
+          - fastchat.serve.gradio_web_server
+          - --controller
+          - http://controller-svc:21001        
+        ports:
+        - containerPort: 7860
+      nodeSelector:
+        cloud.google.com/gke-nodepool: default-pool        
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gui-svc
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 7860
+  selector:
+    app: gui
+  type: LoadBalancer
+
 ```
 
-
-
-### Inference request
-Now you can chat with your model through a simple curl:
-```bash
-curl http://load_balancer_ip:8000/generate \
-    -d '{
-        "prompt": "San Francisco is a",
-        "use_beam_search": true,
-        "n": 4,
-        "temperature": 0
-    }'
+Create controller
+```
+kubectl apply -f fastchat-model-worker.yaml
 ```
 
-### vLLM benchmark inside pod
-
-Login the pod
-```bash
-kubectl exec -iy pod-name bash
+## Test GUI
+1. Get external IP address
 ```
-
-Run benchmark test using vllm test script
-
-```bash
-python3 /root/vllm/benchmarks/benchmark_serving.py --backend vllm --tokenizer /gcs-mount/peft_merged_model --dataset /root/datasets/ShareGPT_V3_unfiltered_cleaned_split.json --host 0.0.0.0 --port 8000
+kubectl get svc gui-svc
 ```
+2. Open browser and input external ip address
+

@@ -7,17 +7,23 @@ import os
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tensor_parallel_size", nargs='?', type=int)
+    # parser.add_argument("--tensor-parallel-size", nargs='?', type=int)
     parser.add_argument("--model_gcs_uri", nargs='?', type=str)
     parser.add_argument("--peft_model_gcs_uri", nargs='?', type=str)
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 def main():
-    args = get_args()
+    args, vllm_args = get_args()
+
+    is_vertex_ai = os.environ.get("AIP_FRAMEWORK")
     
     if args.model_gcs_uri is not None:
+        print ("load your model from gcs")
+        model_path = "/gcs-mount/" + "/".join(args.model_gcs_uri.split("/")[3:])
+
+ if args.model_gcs_uri is not None:
         print ("load your model from gcs")
         model_path = "/gcs-mount/" + "/".join(args.model_gcs_uri.split("/")[3:])
 
@@ -33,17 +39,17 @@ def main():
             
             # start vllm server
             print ("serve gcs peft fine tuned model")
-            result = os.system("python3 -m vllm.entrypoints.api_server --tensor-parallel-size='%s' --model='%s' --host=0.0.0.0 --port=8000" % (args.tensor_parallel_size, merged_model_path))
+            result = os.system("python3 -m vllm.entrypoints.api_server --model='%s' %s" % (merged_model_path, " ".join(vllm_args)))
             print (result)
         else:
             # start vllm server
             print ("serve gcs model")
-            result = os.system("python3 -m vllm.entrypoints.api_server  --tensor-parallel-size='%s' --model='%s' --host=0.0.0.0 --port=8000" % (args.tensor_parallel_size, merged_model_path))
+            result = os.system("python3 -m vllm.entrypoints.api_server  --model='%s' %s" % ( model_path, " ".join(vllm_args)))
             print (result)
     else:
         print ("you do not specify a model, the default model(facebook/opt-125m) will be used for serving.")
 
-        result = os.system("python3 -m vllm.entrypoints.api_server  --tensor-parallel-size='%s' --host=0.0.0.0 --port=8000" % (args.tensor_parallel_size))
+        result = os.system("python3 -m vllm.entrypoints.api_server  %s" % (" ".join(vllm_args)))
         print (result)
 
 

@@ -16,7 +16,7 @@ spec:
         app: controller
     spec:
       containers:
-      - image: asia-southeast1-docker.pkg.dev/speedy-victory-336109/singapore-repo/fschat:v1
+      - image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/artifact-vllm/vllm-server:fastchat
         name: controller
         command:
           - python3
